@@ -14,7 +14,7 @@ class Cart extends CI_Controller {
 	var $gift_cards_enabled; 
 	
 	var $header_text;
-
+	
 	function __construct()
 	{
 		parent::__construct();
@@ -23,13 +23,13 @@ class Cart extends CI_Controller {
 		remove_ssl();
 		
 		$this->load->library('Go_cart');
-		$this->load->model(array('Page_model', 'Product_model', 'Digital_Product_model', 'Gift_card_model', 'Option_model', 'Order_model', 'Settings_model'));
+		$this->load->model(array('Page_model', 'Product_model', 'Digital_Product_model', 'Gift_card_model', 'Option_model', 'Order_model', 'Settings_model', 'Pricelevel_model'));
 		$this->load->helper(array('form_helper', 'formatting_helper'));
 		
 		//fill in our variables
 		$this->categories	= $this->Category_model->get_categories_tierd(0);
 		$this->pages		= $this->Page_model->get_pages();
-		
+
 		// check if giftcards are enabled
 		$gc_setting = $this->Settings_model->get_settings('gift_cards');
 		if(!empty($gc_setting['enabled']) && $gc_setting['enabled']==1)
@@ -55,8 +55,18 @@ class Cart extends CI_Controller {
 		$data['banners']			= $this->Banner_model->get_homepage_banners(5);
 		$data['boxes']				= $this->box_model->get_homepage_boxes(4);
 		$data['homepage']			= true;
-		
+		$data['boxcount']			= count($data['boxes']);
 		$this->load->view('homepage', $data);
+		// $this->load->view('testview', $data);
+	}
+
+	function testview()
+	{
+		$this->load->model(array('Banner_model', 'box_model'));
+		$this->load->helper('directory');
+
+		$data['gift_cards_enabled'] = $this->gift_cards_enabled;
+		$this->load->view('testview', $data);
 	}
 
 	function page($id)
@@ -66,7 +76,6 @@ class Cart extends CI_Controller {
 		$data['fb_like']			= true;
 
 		$data['page_title']			= $data['page']->title;
-		
 		$data['meta']				= $data['page']->meta;
 		$data['seo_title']			= $data['page']->seo_title;
 		
@@ -100,7 +109,6 @@ class Cart extends CI_Controller {
 		}
 		else
 		{
-	
 			$data['page_title']	= 'Search';
 			$data['gift_cards_enabled'] = $this->gift_cards_enabled;
 		
@@ -122,6 +130,32 @@ class Cart extends CI_Controller {
 			}
 			$this->load->view('category', $data);
 		}
+	}
+
+	function advsearchoptions()
+	{
+		$this->load->library('advsearch');
+	
+		$data = $this->advsearch->initsearchoptions();
+		
+		$data['page_title']			= lang('advsearch');
+		$data['gift_cards_enabled']	= $this->gift_cards_enabled;
+
+		$this->load->view('advsearchview', $data);
+		
+	}
+
+	
+	function advsearch($code=false, $page = 0)
+	{
+		// advanced search
+		$this->load->library('advsearch');
+// echo 'calling $this->advsearch->advsearch() from cart' . "<br />\n";
+		$data = $this->advsearch->advsearch();
+		if (!$data['success'])
+			$this->load->view('search_error', $data);
+		else
+			$this->load->view('category', $data);
 	}
 	
 	function category($id, $page=0)
@@ -175,6 +209,8 @@ class Cart extends CI_Controller {
 		// load the digital language stuff
 		$this->lang->load('digital_product');
 		
+		$data['customer'] = $this->go_cart->customer(); // get customer so we know what prices to show
+			
 		$data['options']	= $this->Option_model->get_product_options($data['product']->id);
 		
 		$related			= (array)json_decode($data['product']->related_products);
@@ -206,7 +242,10 @@ class Cart extends CI_Controller {
 		}
 
 		$data['gift_cards_enabled'] = $this->gift_cards_enabled;
-					
+		
+		// pricelevel descriptions
+		$data['pricelevels'] = $this->config->item('pricelevels');
+		$data['distributors'] = $this->config->item('distributors');		
 		$this->load->view('product', $data);
 	}
 	
@@ -219,8 +258,15 @@ class Cart extends CI_Controller {
 		$post_options 	= $this->input->post('option');
 		$cartkey		= $this->input->post('cartkey');
 		
+		
 		// Get a cart-ready product array
 		$product = $this->Product_model->get_cart_ready_product($product_id, $quantity);
+
+		// need to use customer price list
+		$this->load->library('Go_cart');
+		$customer = $this->go_cart->customer();
+		$product['group_discount_type'] = $customer['group_discount_type'];
+		$product['pricelevels'] = $customer['pricelevels'];
 		
 		//if out of stock purchase is disabled, check to make sure there is inventory to support the cart.
 		if(!$this->config->item('allow_os_purchase') && (bool)$product['track_stock'])
@@ -249,13 +295,21 @@ class Cart extends CI_Controller {
 				redirect($this->Product_model->get_slug($product_id));
 			}
 		}
-
 		
 		// Validate Options 
 		// this returns a status array, with product item array automatically modified and options added
 		//  Warning: this method receives the product by reference
+		if ($product['group_discount_type'] == 'lookup')
+		{
+			$product['price'] = 0;	// we use a lookup table instead (pricelevels)
+			$product['base_price'] = 0;	// we use a lookup table instead (pricelevels)
+		}
 		$status = $this->Option_model->validate_product_options($product, $post_options);
-		
+/*
+$data['product'] = $product;
+$this->load->view('testview', $data);
+return;
+*/	
 		// don't add the product if we are missing required option values
 		if( ! $status['validated'])
 		{
@@ -273,6 +327,7 @@ class Cart extends CI_Controller {
 			$product['post_options']	= $post_options;
 			$product['cartkey']			= $cartkey;
 			$product['is_gc']			= false;
+			
 			// Add the product item to the cart, also updates coupon discounts automatically
 			$this->go_cart->insert($product);
 		
@@ -482,4 +537,103 @@ class Cart extends CI_Controller {
 			redirect('cart/view_cart');
 		}
 	}
+	
+	// contact form functions
+	function enterSupportEmail()
+	{
+		// get the support email
+		$this->load->helper('captcha');
+		$captcha_vals = array(
+		    'img_path'		=> './captcha/',
+		    'img_url'		=> base_url() . 'captcha/',
+		    'img_width'		=> '150',
+		    'img_height'	=> 30,
+			'font_path'		=> './system/fonts/texb.ttf',
+			'text_color'	=> array('red'=>0, 'green' =>0, 'blue' =>0),
+		    'expiration'	=> 7200
+		    );
+// 	    
+
+		$cap = create_captcha($captcha_vals);
+		
+		$data = array(
+		    'captcha_time' => $cap['time'],
+		    'ip_address' => $this->input->ip_address(),
+		    'word' => $cap['word']
+		    );
+
+		$query = $this->db->insert_string('captcha', $data);
+		$this->db->query($query);
+
+		$data['cap'] = $cap;
+		$data['captcha'] = $cap['image'];
+		
+		$data['page_title']			= lang('emailsupport');
+		$data['gift_cards_enabled']	= $this->gift_cards_enabled;
+		$this->load->view('emailsupport', $data);
+		
+	}
+	
+	 
+	function sendSupportEmail() {
+		// config details loaded via config/email.php
+		$this->load->library('form_validation');
+		
+		// check captcha
+		// First, delete old captchas
+		$expiration = time()-7200; // Two hour limit
+		$this->db->query("DELETE FROM captcha WHERE captcha_time < ".$expiration);
+
+		// Then see if a captcha exists:
+		$sql = "SELECT COUNT(*) AS count FROM captcha WHERE word = ? AND ip_address = ? AND captcha_time > ?";
+		$binds = array($_POST['captcha'], $this->input->ip_address(), $expiration);
+		$query = $this->db->query($sql, $binds);
+		$row = $query->row();
+
+		if ($row->count == 0)
+		{
+		    echo "You must submit the word that appears in the image";
+		}
+		
+		
+		// field name, error message, validation rule
+		$this->form_validation->set_rules('name', 'Name', 'trim|required');
+		$this->form_validation->set_rules('emailaddress', 'Email address', 'trim|required|valid_email');
+		$this->form_validation->set_rules('subject', 'Subject', 'trim|required');
+		$this->form_validation->set_rules('msg', 'Message', 'trim|required');
+
+		if (!$this->form_validation->run())
+			$this->enterSupportEmail();
+		else
+		{
+			// validated
+			$this->load->library('email');
+
+			// need to grab from email address from the current logged in user info?
+			$this->email->from( $this->input->post('emailaddress'),  $this->input->post('name'));
+			$this->email->to('jd@docuseek2.com');
+			$this->email->subject('FDS: ' . $this->input->post('subject'));
+			$this->email->message($this->input->post('msg'));
+
+			if ($this->email->send())
+			{
+				$this->sentEmailConfirmation();
+				// show_error($this->email->print_debugger());
+			}
+			else
+			{
+				show_error($this->email->print_debugger());
+			}
+			
+		}
+	}
+	
+	function sentEmailConfirmation()
+	{
+		$data['page_title']			= lang('emailsenttitle');
+		$data['gift_cards_enabled']	= $this->gift_cards_enabled;
+		$this->load->view('sent_email_confirmation', $data);
+	}
+
+	
 }
