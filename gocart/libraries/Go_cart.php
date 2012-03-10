@@ -86,7 +86,7 @@ class go_cart {
 		$this->_cart_contents['shipping_total'] 			= 0;
 		// tax
 		$this->_cart_contents['tax'] 						= 0;
-						
+		$this->_cart_contents['order_complete'] 			= false;				
 		
 		
 		// We want to preserve the cart items and properties, but reset total values when recalculating
@@ -810,7 +810,7 @@ class go_cart {
 			{
 				continue;
 			}
-			
+
 			//combine any product id's and tabulate their quantities
 			if(array_key_exists($c['id'], $new_contents))
 			{
@@ -1401,7 +1401,7 @@ class go_cart {
 	{
 		return $this->_cart_contents['total_items'];
 	}
-	
+
 	/**
 	 * Destroy the cart
 	 *

@@ -187,7 +187,7 @@ Class Customer_model extends CI_Model
 		$this->db->where('password',  sha1($password));
 		$this->db->limit(1);
 		$result = $this->db->get('customers');
-		$customer	= $result->row_array();
+		$customer = $result->row_array();
 		
 		if ($customer)
 		{
@@ -199,7 +199,7 @@ Class Customer_model extends CI_Model
 			{
 				$fields = unserialize($address['field_data']);
 				$customer['bill_address'] = $fields;
-				$customer['bill_address']['id'] = $address['id']; // save the addres id for future reference
+				$customer['bill_address']['id'] = $address['id']; // save the address id for future reference
 			}
 			
 			$this->db->where(array('customer_id'=>$customer['id'], 'id'=>$customer['default_shipping_address']));
@@ -213,16 +213,23 @@ Class Customer_model extends CI_Model
 				 $customer['ship_to_bill_address'] = 'true';
 			}
 			
-			
 			// Set up any group discount 
+			$customer['group_discount_type'] = '';	// so we have something
 			if($customer['group_id']!=0) 
 			{
 				$group = $this->get_group($customer['group_id']);
 				if($group) // group might not exist
 				{
+					$customer['group_discount_type'] = $group->discount_type; // hold on to this
 					if($group->discount_type == "fixed")
 					{
 						$customer['group_discount_formula'] = "- ". $group->discount; 
+					}
+					elseif ($group->discount_type == "lookup")
+					{
+						$this->load->model('Pricelevel_model');
+						$customer['pricelevels'] = $this->Pricelevel_model->get_pricelevel($customer['group_id']);
+						// $customer['group_discount_formula'] = "* 0"; 
 					}
 					else
 					{
@@ -231,6 +238,7 @@ Class Customer_model extends CI_Model
 					}
 				}
 			}
+			
 			
 			if(!$remember)
 			{
@@ -257,7 +265,7 @@ Class Customer_model extends CI_Model
 	{
 		
 		//$redirect allows us to choose where a customer will get redirected to after they login
-		//$default_redirect points is to the login page, if you do not want this, you can set it to false and then redirect wherever you wish.
+		//$default_redirect points to the login page, if you do not want this, you can set it to false and then redirect wherever you wish.
 		
 		$customer = $this->go_cart->customer();
 		if (!isset($customer['id']))
@@ -320,8 +328,8 @@ Class Customer_model extends CI_Model
 			$this->load->helper('string');
 			$this->load->library('email');
 			
-			$new_password		= random_string('alnum', 8);
-			$customer['password']	= sha1($new_password);
+			$new_password = random_string('alnum', 8);
+			$customer['password'] = sha1($new_password);
 			$this->save($customer);
 			
 			$this->email->from($this->config->item('email'), $this->config->item('site_name'));
@@ -374,4 +382,6 @@ Class Customer_model extends CI_Model
 			return $this->db->insert_id();
 		}
 	}
+	
+	
 }

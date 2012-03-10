@@ -18,6 +18,8 @@ Class Box_model extends CI_Model
 	function get_homepage_boxes($limit = false)
 	{
 		$boxes	= $this->db->order_by('sequence ASC')->get('boxes')->result();
+
+		$curDate = date('Ymd');
 		
 		$return	= array();
 		foreach ($boxes as $box)
@@ -46,8 +48,6 @@ Class Box_model extends CI_Model
 				$disable		= $do[1].'-'.$do[2].'-'.$do[0];
 			}
 
-			$curDate		= date('Ymd');
-
 			if (($enable_test && $enable_test > $curDate) || ($disable_test && $disable_test <= $curDate))
 			{
 				//fails to make it. rewrite this if statement one day to work opposite of how it does.
@@ -57,7 +57,7 @@ Class Box_model extends CI_Model
 				$return[]	= $box;
 			}
 			
-			if($limit && $limit <= count($return))
+			if($limit && count($return) >= $limit)	// fix test for boxes
 			{
 				break;
 			}
@@ -67,6 +67,9 @@ Class Box_model extends CI_Model
 	
 	function get_box($id)
 	{
+
+		$this->db->select('*,enable_on AS enable_on_alt, disable_on AS disable_on_alt'); // for the hidden input on webpage
+
 		$this->db->where('id', $id);
 		$result = $this->db->get('boxes');
 		$result = $result->row();
@@ -76,11 +79,13 @@ Class Box_model extends CI_Model
 			if ($result->enable_on == '0000-00-00')
 			{
 				$result->enable_on = '';
+				$result->enable_on_alt = '';
 			}
 			
 			if ($result->disable_on == '0000-00-00')
 			{
 				$result->disable_on = '';
+				$result->disable_on_alt = '';
 			}
 		
 			return $result;

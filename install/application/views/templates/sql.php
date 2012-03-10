@@ -168,7 +168,8 @@ CREATE TABLE `prefix_customer_groups` (
   `id` int(11) NOT NULL auto_increment,
   `discount` float default NULL,
   `name` varchar(50) default NULL,
-  `discount_type` enum('fixed','percent') default 'percent',
+  `discount_type` enum('fixed','percent','lookup') DEFAULT 'percent',
+  `pricelevelid` integer(10) unsigned,
   PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=0 DEFAULT CHARSET=utf8;
 
@@ -442,4 +443,26 @@ CREATE TABLE `prefix_settings` (
   `setting` longtext NOT NULL,
   PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=0 DEFAULT CHARSET=utf8;
+
+-- new query
+
+DROP TABLE IF EXISTS prefix_pricelevels;
+CREATE TABLE `prefix_pricelevels` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) DEFAULT NULL,
+  `option1` float DEFAULT NULL,
+  `option2` float DEFAULT NULL,
+  `option3` float DEFAULT NULL,
+  `option4` float DEFAULT NULL,
+  `option5` float DEFAULT NULL,
+  `extra1` float DEFAULT NULL,
+  `extra2` float DEFAULT NULL,
+   PRIMARY KEY (`id`)
+) ENGINE=MyISAM AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
+
+ALTER TABLE prefix_products ADD COLUMN `reviews` text DEFAULT NULL;
+ALTER TABLE prefix_products ADD COLUMN `credits` text DEFAULT NULL;
+ALTER TABLE prefix_products ADD COLUMN `cataloging` text DEFAULT NULL;
+ALTER TABLE prefix_products ADD COLUMN `transcript` text DEFAULT NULL;
+ALTER TABLE prefix_products ADD COLUMN `previewwidget` varchar(300) DEFAULT NULL;
 

@@ -344,7 +344,7 @@ class Products extends Admin_Controller {
 			$this->load->library('image_lib');
 			/*
 			
-			I find that ImageMagick is more efficient that GD2 but not everyone has it
+			I find that ImageMagick is more efficient than GD2 but not everyone has it
 			if your server has ImageMagick then you can change out the line
 			
 			$config['image_library'] = 'gd2';

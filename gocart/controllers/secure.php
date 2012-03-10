@@ -55,9 +55,9 @@ class Secure extends CI_Controller {
 	
 	function login($ajax = false)
 	{
-		//find out if they're already logged in, if they are redirect them to the my account page
+		// find out if they're already logged in, if they are redirect them to the my account page
 		$redirect	= $this->Customer_model->is_logged_in(false, false);
-		//if they are logged in, we send them back to the my_account by default, if they are not logging in
+		// if they are logged in, we send them back to the my_account by default, if they are not logging in
 		if ($redirect)
 		{
 			redirect('secure/my_account/');
@@ -80,8 +80,9 @@ class Secure extends CI_Controller {
 			{
 				if ($redirect == '')
 				{
-					//if there is not a redirect link, send them to the my account page
-					$redirect = 'secure/my_account';
+					//i f there is not a redirect link, send them to the home page (instead of "my account page")
+					// $redirect = 'secure/my_account';
+					 $redirect = 'cart/index';
 				}
 				//to login via ajax
 				if($ajax)
@@ -333,7 +334,7 @@ class Secure extends CI_Controller {
 	
 		$data['gift_cards_enabled']	= $this->gift_cards_enabled;
 		
-		$data['customer']			= (array)$this->Customer_model->get_customer($this->customer['id']);
+		$data['customer']			= $this->go_cart->customer();
 			
 		$data['addresses'] 			= $this->Customer_model->get_address_list($this->customer['id']);
 		

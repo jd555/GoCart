@@ -218,3 +218,20 @@ $lang['giftcard_already_applied']		= 'Your gift card is already applied';
 $lang['error_updating_cart']			= 'There was an error updating the cart!';
 $lang['not_enough_stock']				= 'The quantity requested for the "%s" product could not be added. We only have %d item(s) in stock.';
 
+// added for DS2
+$lang['login_required']					= 'You must {login} to purchase items.';
+$lang['purchaseorder_number']			= 'Purchase order number';
+$lang['purchaseorder']					= 'Purchase order';
+$lang['order_complete']					= 'Order complete';
+$lang['not_logged_in']					= 'Not logged in';
+
+$lang['tab_reviews']					= 'Reviews';
+$lang['tab_transcript']					= 'Transcript';
+$lang['tab_credits']					= 'Credits';
+$lang['tab_cataloging']					= 'Cataloging info';
+$lang['tab_preview']					= 'Preview';
+
+$lang['emailsupport']					= 'Email support';
+$lang['emailsenttitle']					= 'Email success';
+$lang['emailsuccessmsg']				= 'Your email was successfully sent';
+$lang['advsearch']						= 'Advanced search';

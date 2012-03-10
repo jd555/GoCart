@@ -203,6 +203,16 @@ Class Option_model extends CI_Model
 							}
 						}
 						
+						// support lookup price tables
+						if ($product['group_discount_type'] == 'lookup')
+						{	
+							$pricelevels = $this->config->item('pricelevels');
+							if ($val->type == $pricelevels['baseprice'])
+								$val->price = $product['price'];
+							else
+								$val->price = $product['pricelevels'][$val->value];
+							$product['price'] = $val->price;
+						}							
 						$price = '';
 						if($val->price > 0)
 						{
@@ -270,9 +280,23 @@ Class Option_model extends CI_Model
 					}
 					
 					//adjust product price and weight
-					$product['price'] 	= $product['price'] + $val->price;
+					// $product['price'] = $product['price'] + $val->price; // using price tiers, we adjust price below.
 					$product['weight'] 	= $product['weight'] + $val->weight;
-					
+
+					$val->price = 888;
+					// support lookup price tables
+					if ($product['group_discount_type'] == 'lookup')
+					{	
+						$pricelevels = $this->config->item('pricelevels');
+						if ($val->value == $pricelevels['baseprice'])
+							$val->price = $product->price;
+						else
+							$val->price = $product['pricelevels'][$val->value];
+						$product['price'] = $val->price;
+					}
+					else
+						$product['price'] 	= $product['price'] + $val->price;					
+									
 					$price = '';
 					if($val->price > 0)
 					{

@@ -1,4 +1,5 @@
 <?php  if ( ! defined('BASEPATH')) exit('No direct script access allowed');
+
 /*
 |--------------------------------------------------------------------------
 | Base Site URL
@@ -27,7 +28,7 @@ $config['base_url']			= '';
 | variable so that it is blank.
 |
 */
-$config['index_page'] = '';
+$config['index_page'] = 'index.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -225,7 +226,7 @@ $config['cache_path'] = '';
 | MUST set an encryption key.  See the user guide for info.
 |
 */
-$config['encryption_key'] = '80e4d672e13a52a359998f7c16ec8620';
+$config['encryption_key'] = 'a3bed46e139353c4d4c091d7de9eb6c9';
 
 /*
 |--------------------------------------------------------------------------

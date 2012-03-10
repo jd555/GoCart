@@ -87,8 +87,8 @@ class Boxes extends Admin_Controller
 			$uploaded	= $this->upload->do_upload('image');
 			
 			$save['title']			= $this->input->post('title');
-			$save['enable_on']		= $this->input->post('enable_on');
-			$save['disable_on']		= $this->input->post('disable_on');
+			$save['enable_on']		= $this->input->post('enable_on_alt');
+			$save['disable_on']		= $this->input->post('disable_on_alt');
 			$save['link']			= $this->input->post('link');
 			$save['new_window']		= $this->input->post('new_window');
 
