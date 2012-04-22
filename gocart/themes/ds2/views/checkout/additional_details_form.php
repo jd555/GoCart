@@ -14,12 +14,14 @@
 					<?php echo form_input(array('name'=>'referral', 'class'=>'input', 'value'=>$referral));?>
 				</div>
 			</div>
+<?php if($this->go_cart->requires_shipping()) {?>	
 			<div class="form_wrap">
 				<div>
 					<?php echo lang('shipping_instructions');?><br/>
 					<?php echo form_textarea(array('name'=>'shipping_notes', 'class'=>'checkout_textarea', 'value'=>$shipping_notes))?>
 				</div>
 			</div>
+<?php } else echo '<input type="hidden" id="shipping_notes" name="shipping_notes" value="">'; ?>
 		</form>
 	</div>
 	<div class="clear"></div>

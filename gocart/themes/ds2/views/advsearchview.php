@@ -1,7 +1,7 @@
 <?php include('header.php');?>
 <form name="frmSearch" action="advsearch" method="post">
 	<strong>Advanced Search</strong> provides additional search options. <strong>Basic search</strong> provides a keyword search only. Advanced search allows you to search for videos by grade level, format, release date and more.
-	<p>Enter your search criteria below (as many as you like), then click the Find Titles button. (Need help on searching? <?php echo anchor('help','Click here'); ?>.)</p>
+	<p>Enter your search criteria below, then click the Find Titles button. (Need help on searching? <?php echo anchor('help','Click here'); ?>.)</p>
 
 <!--			
 			<p><input id="btnSearch" name="btnSearch" type="submit" value="Find titles">&nbsp;&nbsp;<input id="btnClear" name="btnReset" type="button" value="Clear" title="Clear search terms" onClick="return ClearQuery('true');"></p>
@@ -40,10 +40,10 @@
 	</p>
 	<p>
 	<label for='ilowlength'>Length</label> between&nbsp; 
-	<input id="ilowlength" name="lowLength" size="4" value="<?php print $ilowlength ?>" />&nbsp;and&nbsp;<input align="right" id="ihighlength" name="ihighlength" size="4"  value="<?php print $ihighlength ?>" />&nbsp;minutes
+	<input id="ilowlength" name="ilowlength" size="4" value="<?php print $ilowlength ?>" />&nbsp;and&nbsp;<input align="right" id="ihighlength" name="ihighlength" size="4"  value="<?php print $ihighlength ?>" />&nbsp;minutes
 	</p>
 	<p>
-	<label for='lowRelDate'>Year</label> between&nbsp; <input id="lowRelDate" name="lowRelDate" size="4" value="<?php print $clowreldate ?>">&nbsp;and&nbsp; <input align="right" id="chighreldate" name="chighreldate" size="4" value="<?php print $chighreldate ?>" />
+	<label for='clowreldate'>Year</label> between&nbsp; <input id="clowreldate" name="clowreldate" size="4" value="<?php print $clowreldate ?>">&nbsp;and&nbsp; <input align="right" id="chighreldate" name="chighreldate" size="4" value="<?php print $chighreldate ?>" />
 	</p>
 	<p>
 	<label for='gradelevel'>Grade level</label>
@@ -69,7 +69,7 @@
 <p>
 <?php 
 echo form_submit('btnsearch','Find titles');
-echo form_reset('btnclear','Clear');
 ?>
+<button type='button' onclick="return RunQuery('frmSearch','<?php echo site_url('/cart/clearadvsearch'); ?>');return false;"><?php echo lang('clear_search');?></button>
 </p>
 <?php include('footer.php');?>

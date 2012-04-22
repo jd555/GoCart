@@ -14,6 +14,7 @@ class Cart extends CI_Controller {
 	var $gift_cards_enabled; 
 	
 	var $header_text;
+	var $distribs = NULL;
 	
 	function __construct()
 	{
@@ -41,6 +42,8 @@ class Cart extends CI_Controller {
 			$this->gift_cards_enabled = false;
 		}
 		
+		$this->distribs = array('BULL' => "Bullfrog Films", 'FRIF' => "Icarus Films", 'FANL' => 'Fanlight Productions');
+				
 		//load the theme package
 		$this->load->add_package_path(APPPATH.'themes/'.$this->config->item('theme').'/');
 		
@@ -87,75 +90,281 @@ class Cart extends CI_Controller {
 	function search($code=false, $page = 0)
 	{
 		$this->load->model('Search_model');
-		$data['page_title']			= lang('search');
-		$data['gift_cards_enabled']	= $this->gift_cards_enabled;
+		$this->load->library('advsearch'); // should be loaded in autoload.php
+		$advsearch = new advsearch;
+		$data = array();
+		
+		$this->displaysortorder($data);
+		
+// echo 'code: ' . 	$code . "<br />\n";
+// echo 'post ckeywords: ' . $this->input->post('ckeywords') . "<br />\n";;
 		//check to see if we have a search term
 		if(!$code)
 		{
-			//if the term is in post, save it to the db and give me a reference
-			$term		= $this->input->post('term');
-			$code		= $this->Search_model->record_term($term);
+			// if the term is in post, save it to the db and give me a reference
+			$advsearch->ckeywords = $this->input->post('ckeywords');
+// print_r($advsearch);
+// echo "<br />\n" . '================================' . "<br />\n";
+			$code = $this->Search_model->record_term(json_encode($advsearch));
+			$this->session->set_userdata('searchcode', $code);
 		}
 		else
 		{
-			//if we have the md5 string, get the term
-			$term	= $this->Search_model->get_term($code);
+			// if we have the md5 string, get the term
+			$this->session->set_userdata('searchcode', $code);
+			$term = $this->Search_model->get_term($code);
+			$advsearchobj	= json_decode($term);
+// print_r($advsearchobj);
+/*
+switch (json_last_error()) {
+     case JSON_ERROR_NONE:
+         echo ' - No errors';
+     break;
+     case JSON_ERROR_DEPTH:
+         echo ' - Maximum stack depth exceeded';
+     break;
+     case JSON_ERROR_STATE_MISMATCH:
+         echo ' - Underflow or the modes mismatch';
+     break;
+     case JSON_ERROR_CTRL_CHAR:
+         echo ' - Unexpected control character found';
+     break;
+     case JSON_ERROR_SYNTAX:
+         echo ' - Syntax error, malformed JSON';
+     break;
+     case JSON_ERROR_UTF8:
+         echo ' - Malformed UTF-8 characters, possibly incorrectly encoded';
+     break;
+     default:
+         echo ' - Unknown error';
+     break;
+ }
+echo "<br />\n";
+*/
+			$advsearch->convertjson($advsearchobj);
 		}
-
-		if(empty($term))
+		
+		$advsearch->initsearchoptions($data);
+		
+		$data['page_title']	= lang('search');
+		$data['gift_cards_enabled'] = $this->gift_cards_enabled;
+		
+//echo 'ckeywords: ' . 	$advsearch->ckeywords . "<br />\n";
+		if(empty($advsearch->ckeywords))
 		{
 			//if there is still no search term throw an error
 			$this->load->view('search_error', $data);
 		}
 		else
 		{
-			$data['page_title']	= 'Search';
+			$data['page_title']	= lang('search');
 			$data['gift_cards_enabled'] = $this->gift_cards_enabled;
 		
 			//set up pagination
-			$this->load->library('pagination');
-			$config['base_url']		= base_url().'cart/search/'.$code.'/';
+			$this->load->library('pagination');	
+			// $config['base_url']		= base_url() . $this->config->item('index_page') . (strlen($this->config->item('index_page')) > 0 ? '/' : '') . 'cart/search/' . $code . '/';
+			$config['base_url']		= site_url('cart/search/' . $code . '/') ;
+			
 			$config['uri_segment']	= 4;
 			$config['per_page']		= 20;
 	
-			$result					= $this->Product_model->search_products($term, $config['per_page'], $page);
+			$result					= $advsearch->search($config['per_page'], $page);
+			// $result					= $this->Product_model->search_products($data, $config['per_page'], $page);
 			$config['total_rows']	= $result['count'];
 			$this->pagination->initialize($config);
 	
 			$data['products']		= $result['products'];
-			foreach ($data['products'] as &$p)
-			{
-				$p->images	= (array)json_decode($p->images);
-				$p->options	= $this->Option_model->get_product_options($p->id);
-			}
+			$data['count']			= $result['count'];
+			$data['distribs']		= $this->distribs;
+
 			$this->load->view('category', $data);
 		}
 	}
 
-	function advsearchoptions()
+	function advsearchoptions($code=false, $page = 0)
 	{
-		$this->load->library('advsearch');
-	
-		$data = $this->advsearch->initsearchoptions();
+		$this->load->model('Search_model');
+		$this->load->library('advsearch'); // should be loaded in autoload.php
+		$advsearch = new advsearch;
+		$data = array();
 		
 		$data['page_title']			= lang('advsearch');
 		$data['gift_cards_enabled']	= $this->gift_cards_enabled;
+		$data['advsearchoptions'] = true;
 
+		// eventually retrieve any advanced search options
+		$havecode = false;
+		if(!$code)
+		{
+			// if the term is in post, save it to the db and give me a reference
+			// see if we have one in the user data
+			$code = $this->session->userdata('searchcode');
+			if(!$code)
+			{
+				$advsearch->ckeywords = $this->input->post('keywords');
+				$code = $this->Search_model->record_term(json_encode($advsearch));
+				$this->session->set_userdata('searchcode', $code);
+			}
+			else
+				$havecode = true;
+		}
+		else
+			$havecode = true;
+		
+		if ($havecode)	
+		{
+			// if we have the md5 string, get the term
+// echo 'code: ' . $code . "<br />\n";
+			$term	= $this->Search_model->get_term($code);
+			$advsearchobj = json_decode($term);
+// echo 'term: ' . $term . "<br />\n";
+// print_r($advsearchobj);
+			if (json_last_error() != JSON_ERROR_NONE)
+			{		
+				switch (json_last_error())
+				{
+				     case JSON_ERROR_NONE:
+				         echo ' - No errors';
+				     break;
+				     case JSON_ERROR_DEPTH:
+				         echo ' - Maximum stack depth exceeded';
+				     break;
+				     case JSON_ERROR_STATE_MISMATCH:
+				         echo ' - Underflow or the modes mismatch';
+				     break;
+				     case JSON_ERROR_CTRL_CHAR:
+				         echo ' - Unexpected control character found';
+				     break;
+				     case JSON_ERROR_SYNTAX:
+				         echo ' - Syntax error, malformed JSON';
+				     break;
+				     case JSON_ERROR_UTF8:
+				         echo ' - Malformed UTF-8 characters, possibly incorrectly encoded';
+				     break;
+				     default:
+				         echo ' - Unknown error';
+				     break;
+				}
+				echo "<br />\n";
+			 }
+			else
+				$advsearch->convertjson($advsearchobj);
+		}
+		else
+		{
+//echo 'Clear should call this'."<br />\n";			
+			// $advsearch->convertjson($advsearchobj);
+		}
+		$advsearch->initsearchoptions($data);
 		$this->load->view('advsearchview', $data);
 		
-	}
+	}	// end of advsearchoptions
 
 	
 	function advsearch($code=false, $page = 0)
 	{
 		// advanced search
-		$this->load->library('advsearch');
+		$this->load->library('advsearch'); // should be loaded in autoload.php
+		$this->load->model('Search_model');
+		
 // echo 'calling $this->advsearch->advsearch() from cart' . "<br />\n";
-		$data = $this->advsearch->advsearch();
-		if (!$data['success'])
+		$advsearch = new advsearch;
+		$data = array();
+		
+		$this->displaysortorder($data);
+		
+		$advsearch->loadterms();
+		
+		$havecode = false;
+
+		if(!$code)
+		{
+			// see if we have one in the user data
+			$code = $this->session->userdata('searchcode');
+			if(!$code)
+			{
+				$code = $this->Search_model->record_term(json_encode($advsearch));
+			}
+			else
+				$havecode = true;
+		}	
+		else
+			$havecode = true;
+		
+		if ($havecode)	
+		{
+			// if we have the md5 string, set the term
+// echo 'code: ' . $code . "<br />\n";
+			$term = json_encode($advsearch);
+			$this->Search_model->set_term($code,$term);
+		}
+
+		// set up pagination
+		$this->load->library('pagination');
+		$config['base_url']		= site_url('cart/search/' . $code . '/') ;
+		$config['uri_segment']	= 4;
+		$config['per_page']		= 20;
+
+		// this is the actual search
+		$result	= $advsearch->search($config['per_page'], $page);
+
+		$config['total_rows']	= $result['count'];
+		$this->pagination->initialize($config);
+
+		$data['term'] = $term;
+		
+		$advsearch->initsearchoptions($data);
+		$data['page_title']	= lang('search');
+		$data['gift_cards_enabled'] = $this->gift_cards_enabled;
+
+		$data['products']		= $result['products'];
+		$data['count']			= $result['count'];
+		$data['distribs']		= $this->distribs;
+		
+		if (!$result['success'])
 			$this->load->view('search_error', $data);
 		else
 			$this->load->view('category', $data);
+	}
+	
+	function clearadvsearch()
+	{
+		$this->session->set_userdata('searchcode', false);
+		$this->advsearchoptions(false);
+	}
+	
+	function displaysortorder(&$data)
+	{
+		// display/sort orders
+		if($this->input->post('sortorder') != '')
+		{
+			$data['sortorder'] = $this->input->post('sortorder');
+			$this->session->set_userdata('sortorder', $data['sortorder']);
+		}
+		else
+			$data['sortorder'] = $this->session->userdata('sortorder');
+		
+		$data['lclengthchecked'] = '';
+		$data['lcreldatechecked'] = '';
+		$data['lcrelevancechecked'] = '';
+		$data['lctitlechecked'] = '';
+		
+		switch ($data['sortorder'])
+		{
+			case (C_SORT_LENGTH):
+				$data['lclengthchecked'] = "checked";
+				break;
+			case (C_SORT_RELEASEDATE):
+				$data['lcreldatechecked'] = "checked";
+				break;
+			case (C_SORT_RELEVANCE):
+				$data['lcrelevancechecked'] = " checked";
+				break;
+			default:
+				$data['lctitlechecked'] = " checked";
+				break;
+		}
+		return;
 	}
 	
 	function category($id, $page=0)
@@ -200,7 +409,7 @@ class Cart extends CI_Controller {
 	{
 		//get the product
 		$data['product']	= $this->Product_model->get_product($id);
-		
+//print_r($data)		
 		if(!$data['product'] || $data['product']->enabled==0)
 		{
 			show_404();
@@ -303,6 +512,7 @@ class Cart extends CI_Controller {
 		{
 			$product['price'] = 0;	// we use a lookup table instead (pricelevels)
 			$product['base_price'] = 0;	// we use a lookup table instead (pricelevels)
+			$product['weight'] = 0;	// we use a lookup table instead (pricelevels)
 		}
 		$status = $this->Option_model->validate_product_options($product, $post_options);
 /*
@@ -635,5 +845,9 @@ return;
 		$this->load->view('sent_email_confirmation', $data);
 	}
 
-	
+	function playvideo($titleid)
+	{
+		$data = array('id' => $titleid);
+		$this->load->view('player', $data);
+	}
 }

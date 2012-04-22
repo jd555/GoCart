@@ -1,10 +1,14 @@
 <?php
+
 Class Product_model extends CI_Model
 {
 		
 	// we will store the group discount formula here
 	// and apply it to product prices as they are fetched 
 	var $group_discount_formula = false;
+	var $dispwhereclass_start = '<span class="search_display_where">';
+	var $dispwhereclass_end = '</span>';
+	var $textsearch = '';
 	
 	function __construct()
 	{
@@ -73,6 +77,7 @@ Class Product_model extends CI_Model
 		}
 		
 		$result->categories = $this->get_product_categories($result->id);
+		
 		
 		$result->extras = $this->get_product_extras($result->id);
 		
@@ -220,25 +225,43 @@ Class Product_model extends CI_Model
 		$this->db->insert('product_categories', array('product_id'=>$product_id, 'category_id'=>$category_id, 'sequence'=>$sequence));
 	}
 
-	function search_products($term, $limit=false, $offset=false)
+	function search_products($searchdata, $limit=false, $offset=false)
 	{
 		$results		= array();
+		$results = $this->advsearch->search($searchdata);
 
+		return $results;
+
+//--------------------------------------------------------		
 		//I know this is the round about way of doing things and is not the fastest. but it is thus far the easiest.
 
 		//this one counts the total number for our pagination
-		$this->db->like('name', $term);
-		$this->db->or_like('description', $term);
-		$this->db->or_like('excerpt', $term);
-		$this->db->or_like('sku', $term);
+$ckeywordclause = $this->getkeywords($term);
+$likes = array('name'=> $term, 'description' => $term, 'excerpt' => $term, 'sku' => $term);
+
+//$this->db->or_like($likes);
+//$this->db->or_where($ckeywordclause);
+
+$this->db->where($ckeywordclause . " OR name LIKE '%" . $term . "%' OR description LIKE '%" . $term . "%' OR excerpt LIKE '%" . $term . "%' OR sku LIKE '%" . $term . "%'" );
+
+$this->db->join('ds2_titles', 'ds2_titles.product_id = ds2_products.id');
+
 		$results['count']	= $this->db->count_all_results('products');
 
+/*		
 		//this one gets just the ones we need.
 		$this->db->like('name', $term);
 		$this->db->or_like('description', $term);
 		$this->db->or_like('excerpt', $term);
 		$this->db->or_like('sku', $term);
+*/
+// $this->db->or_like($likes);
+$this->db->where($ckeywordclause . " OR name LIKE '%" . $term . "%' OR description LIKE '%" . $term . "%' OR excerpt LIKE '%" . $term . "%' OR sku LIKE '%" . $term . "%'" );
+
+$this->db->join('ds2_titles', 'ds2_titles.product_id = ds2_products.id');
+
 		$results['products']	= $this->db->get('products', $limit, $offset)->result();
+// echo $this->db->last_query() . "<br />\n";
 		return $results;
 	}
 
@@ -302,34 +325,54 @@ Class Product_model extends CI_Model
 		
 	}
 	
-	function adv_search_products($advsearch, $limit=false, $offset=false)
+	function adv_search_products($advsearch, $limit=20, $offset=0)
 	{
 		// $advsearch is an Advsearch 
 		$results		= array();
-
+		
 		$this->db->start_cache();
 		
 		$this->getdistribs($advsearch);
+		$advsearch->cdisplaywhere = '';
 		
-		if ($advsearch->ccredits != '')
-			$this->db->like('ds2_titles.credits',$advsearch->ccredits);
-			
-		if ($advsearch->cawards != '')
-			$this->db->like('awards',$advsearch->cawards);
-
+		/*----------
+		----------*/
 		if ($advsearch->ckeywords != '')
-			$this->getkeywords($advsearch->ckeywords);
+		{		
+			$ckeywordclause = $this->getkeywords($advsearch->ckeywords);
+			$this->db->where($ckeywordclause);
+			$advsearch->cdisplaywhere .= 'Keywords include ' . $this->dispwhereclass_start . $advsearch->ckeywords . $this->dispwhereclass_end;
+		}		
 		
+		//-------------- start other/advanced criteria --------------//
+		if ($advsearch->ccredits != '')
+		{		
+			$this->db->like('ds2_titles.credits',$advsearch->ccredits);
+			$advsearch->cdisplaywhere .= (empty($advsearch->cdisplaywhere) ? '' : ' AND ' ) . 'Credits include ' . $this->dispwhereclass_start . $advsearch->ccredits . $this->dispwhereclass_end;
+		}
+					
+		if ($advsearch->cawards != '')
+		{		
+			$this->db->like('awards',$advsearch->cawards);
+			$advsearch->cdisplaywhere .= (empty($advsearch->cdisplaywhere) ? '' : ' AND ' ) . 'Awards include ' . $this->dispwhereclass_start . $advsearch->cawards . $this->dispwhereclass_end;
+		}
+
 		if ($advsearch->clowreldate != '' || $advsearch->chighreldate != '' )
+		{
 			$this->getreleasedates($advsearch);
-			
+			$advsearch->cdisplaywhere .= (empty($advsearch->cdisplaywhere) ? '' : ' AND ' ) . 'Release year is between ' . $this->dispwhereclass_start . (empty($advsearch->clowreldate) ? 'whenever' : $advsearch->clowreldate ) . $this->dispwhereclass_end . ' and ' . $this->dispwhereclass_start . (empty($advsearch->chighreldate) ? 'the present' : $advsearch->clowreldate ) . $this->dispwhereclass_end;
+		}
+					
 		if (!empty($advsearch->ctitle))
+		{
 			$this->gettitle($advsearch);
+		}
 			
 		$this->getlength($advsearch);
 		$this->getgradelevel($advsearch);
 		$this->getformat($advsearch);
 		$this->getmisc($advsearch);
+		//-------------- end other/advanced criteria --------------//
 		
 		$this->db->join('ds2_titles', 'ds2_titles.product_id = ds2_products.id');
 		
@@ -339,13 +382,43 @@ Class Product_model extends CI_Model
 
 		//this one gets just the ones we need.
 		// do we need to fill the where clause again?
-		$this->db->order_by('name');
+		$data['sortorder'] = $this->session->userdata('sortorder');
+		if($data['sortorder'] == C_SORT_RELEVANCE  && empty($advsearch->ckeywords))
+		{
+			// no key words, so change to default
+			$data['sortorder'] = C_SORT_TITLE;
+		}
+		switch ($data['sortorder'])
+		{
+			case (C_SORT_LENGTH):
+				$this->db->order_by('length ASC, realtitle ASC');
+				$this->db->group_by('realtitle');
+				break;
+			case (C_SORT_RELEASEDATE):
+				$this->db->order_by('filmyear DESC, realtitle ASC');
+				$this->db->group_by('realtitle');
+				break;
+			case (C_SORT_RELEVANCE):
+				$this->db->order_by('rele DESC, realtitle ASC');
+				$this->db->group_by('realtitle');
+				$this->db->having('rele > 0.2');
+				break;
+			default:
+				$this->db->order_by('realtitle ASC');
+				$this->db->group_by('realtitle');
+				break;
+		}
 		
-		$results['products']	= $this->db->get('products', $limit, $offset)->result();
+		$this->db->select('distrib,slug,length,url,oneline,filmyear,gradelevel,realtitle, titl_num', FALSE);
+		
+		if (!empty($this->textsearch))
+			$this->db->select( $this->textsearch . ' AS rele', TRUE );
+				
+		$results['products']	= $this->db->get('products', $offset, $limit)->result();
+		
+// echo $this->db->last_query() . "<br />\n";
 		
 		$this->db->flush_cache();
-		
-		// echo $this->db->last_query() . "<br />\n";
 		
 		return $results;
 		
@@ -364,7 +437,7 @@ Class Product_model extends CI_Model
 			(($advsearch->isfrif == 'true') ? '`distrib` = \'FRIF\'' : '0') .
 			' OR ' . 
 			(($advsearch->isbullfrog == 'true') ? '`distrib` = \'BULL\'' : '0') .
-			')');
+			')', NULL, FALSE);
 		return;
 		
 	}
@@ -372,6 +445,7 @@ Class Product_model extends CI_Model
 	function getkeywords($ckeywords)
 	{
 		// at some point, we can try the natural language query
+/*		
 		$ckeywordclause = '(' . 
 			'`name` LIKE \'%' . $ckeywords . '%\' OR ' .
 			'`description` LIKE \'%' . $ckeywords . '%\' OR ' .
@@ -381,8 +455,33 @@ Class Product_model extends CI_Model
 			'ds2_titles.transcript LIKE \'%' . $ckeywords . '%\' OR ' .
 			'ds2_titles.reviews LIKE \'%' . $ckeywords . '%\' OR ' .
 			'ds2_titles.cataloging LIKE \'%' . $ckeywords . '%\')';
+*/
+		// assume if this is called that there are keywords
+		// echo DEBUG_MODE ? 'In getkeywords(), $cKeywords is not empty: ' . $ckeywords : '';
+
+		// add wildcard to end of each word that doesn't end in 's'
+		$words = explode(" ", $ckeywords);
+		$newWords = array();
+		foreach($words as $word)
+		{
+			if (substr($word,-1) != "s")
+			{
+				$newWords[] = $word . 's';
+			}
+		}
+		$allWords = array_merge($words,$newWords);
+		$newkeywords = implode($allWords," ");
+		// $keywords = $this->cKeywords;
+
+// echo 'newkeywords: ' . $newkeywords . "<br />\n";
 		
-		$this->db->where($ckeywordclause);
+		$ckeywordclause = 'MATCH( webdesc, websubject, oneline, keywords, transcript ) AGAINST (\'' . $newkeywords . '\')' ;
+
+// (file_exists('gocart/config/devo.txt')) ? ")" : " IN BOOLEAN MODE)" ;  // NATURAL LANGUAGE MODE gives a problem w/ mySQL 5.067
+
+// echo 'ckeywordclause: ' . $ckeywordclause . "<br />\n";
+		$this->textsearch = $ckeywordclause;
+		return $ckeywordclause;
 		
 	}
 	
@@ -412,7 +511,7 @@ Class Product_model extends CI_Model
 				$clowreldate = "20" . trim($clowreldate);
 			}
 		}
-		elseif (strlen(trim($clowreldate)) == 4 && between(intval($clowreldate), 1850, date('Y', time())))
+		elseif (strlen(trim($clowreldate)) == 4 && intval($clowreldate) >= 1850 && intval($clowreldate) <= date('Y', time()))
 		{
 			// okay
 		}
@@ -456,14 +555,14 @@ Class Product_model extends CI_Model
 			if (($clowreldate == "1900" && $chighreldate != "2099"))
 			{
 				$lcwhereclause .= "(LENGTH(filmyear)>0 AND filmyear <= '" . $chighreldate . "')";
-				$lcdispwhere .= "Release year is before " .  strval(intval($chighreldate) + 1) . '<BR>';
+				$lcdispwhere .= "Release year is before " .  strval(intval($chighreldate) + 1);
 			}
 			else
 			{
 				if (($clowreldate != "1900" && $chighreldate == "2099"))
 				{
 					$lcwhereclause .= "filmyear >= '" . $clowreldate . "'";
-					$lcdispwhere .= "Release year is after " .  strval(intval($clowreldate) - 1) . '<BR>';
+					$lcdispwhere .= "Release year is after " .  strval(intval($clowreldate) - 1);
 				}
 				else // ($clowreldate != "1900" && $chighreldate != "2099");
 				{
@@ -472,8 +571,9 @@ Class Product_model extends CI_Model
 				}
 			}
 		}
-		$advsearch->cdisplaywhere .= $lcdispwhere;
 		$this->db->where($lcwhereclause);
+		// $advsearch->cdisplaywhere .= (empty($advsearch->cdisplaywhere) ? '' : ' AND ' ) . $lcdispwhere;
+		//echo 'lcwhereclause: ' . $lcwhereclause . "<br />\n";
 		
 	}
 
@@ -490,8 +590,9 @@ Class Product_model extends CI_Model
 			if (($ilowlength > 0 && $ihighlength == 999))
 			{
 				// low length only
-				$lcwhereclause .= " `length` >= " . strval($ilowlength);
-				$lcdispwhere .= "Length is " .  strval($ilowlength) . " minutes or more<BR>";
+				$lcwhereclause .= " length >= " . strval($ilowlength);
+				$lcdispwhere .= (empty($advsearch->cdisplaywhere) ? '' : ' AND ' ) . 'Length is ' .  $this->dispwhereclass_start . strval($ilowlength) . $this->dispwhereclass_end . ' minutes or more';
+				
 			}
 			else
 			{
@@ -499,16 +600,16 @@ Class Product_model extends CI_Model
 				{
 					// high length only
 					$lcwhereclause .= "`length` BETWEEN 1 AND " . strval($ihighlength);	// ignore 0 length titles
-					$lcdispwhere .= "Length is " .  strval($ihighlength) . " minutes or less<BR>";
+					$lcdispwhere .= (empty($advsearch->cdisplaywhere) ? '' : ' AND ' ) . 'Length is ' .  $this->dispwhereclass_start . strval($ihighlength) . $this->dispwhereclass_end . " minutes or less";
 				}
 				else
 				{
 					// high and low length
-					$lcwhereclause .= " `length` BETWEEN " . strval($ilowlength) . ' AND ' .  strval($ihighlength);
-					$lcdispwhere .= "Length is between " . strval($ilowlength) . " minutes and " .  strval($ihighlength) . " minutes<BR>";
+					$lcwhereclause .= " length BETWEEN " . strval($ilowlength) . ' AND ' .  strval($ihighlength);
+					$lcdispwhere .= (empty($advsearch->cdisplaywhere) ? '' : ' AND ' ) . 'Length is between ' . $this->dispwhereclass_start . strval($ilowlength) . $this->dispwhereclass_end . ' minutes and ' .  $this->dispwhereclass_start . strval($ihighlength) . $this->dispwhereclass_end . ' minutes';
 				}
 			}
-			$this->db->where($lcwhereclause);
+			$this->db->where($lcwhereclause, NULL, FALSE);
 			$advsearch->cdisplaywhere .= $lcdispwhere;
 		}
 	}
@@ -590,8 +691,8 @@ Class Product_model extends CI_Model
 		if (!empty($lcgradelevelclause)	)
 		{
 			$lcgradelevelclause = "(" . $lcgradelevelclause . ")";
-			$this->db->where($lcgradelevelclause);
-			$advsearch->cdisplaywhere .= 'AND ' . "Grade level is " . $lcdispgradelevel . '<br>';
+			$this->db->where($lcgradelevelclause, NULL, FALSE);
+			$advsearch->cdisplaywhere .= ' AND ' . "Grade level is " . $this->dispwhereclass_start . $lcdispgradelevel . $this->dispwhereclass_end;
 		}	
 		
 	}
@@ -641,8 +742,8 @@ Class Product_model extends CI_Model
 		if (!empty($lcformatclause))
 		{
 			$lcformatclause = "(" . $lcformatclause . ")";
-			$this->db->where($lcformatclause);
-			$advsearch->cdisplaywhere .= ' AND ' . "Format is " . $lcdispformat . '<br>';
+			$this->db->where($lcformatclause, NULL, FALSE);
+			$advsearch->cdisplaywhere .= ' AND ' . "Format is " . $this->dispwhereclass_start . $lcdispformat . $this->dispwhereclass_end;
 		}
 		
 	}
@@ -658,28 +759,28 @@ Class Product_model extends CI_Model
 		if ($advsearch->closecaption)
 		{
 			$this->db->where('closecapti');
-			$lcdispwhere .= ' AND ' . "Closed-captioned" . '<br>';
+			$lcdispwhere .= ' AND ' . "Closed-captioned";
 		}
 		if ($advsearch->subtitled)
 		{
 			$this->db->where('subtitled');
-			$lcdispwhere .= ' AND ' . "Sub-titled" . '<br>';
+			$lcdispwhere .= ' AND ' . "Sub-titled";
 		}
 		if ($advsearch->studyguide)
 		{
 			$this->db->where('studyguide');
-			$lcdispwhere .= ' AND ' . "Study Guide is available" . '<br>';
+			$lcdispwhere .= ' AND ' . "Study Guide is available";
 		}
 		if ($advsearch->isclassrm)
 		{
 			$this->db->where('isclassrm');
-			$lcdispwhere .= ' AND ' . "Classroom version is available" . '<br>';
+			$lcdispwhere .= ' AND ' . "Classroom version is available";
 		}
 
 		if ($lcdispwhere != '')
 		{
 			$lcdispwhere = (substr(ltrim($lcdispwhere),0,3) == "AND" ? substr(ltrim($lcdispwhere),4) : ltrim($lcdispwhere));
-			$advsearch->cdisplaywhere .= ' AND ' . $lcdispwhere . '<br>';
+			$advsearch->cdisplaywhere .= ' AND ' . $this->dispwhereclass_start . $lcdispwhere . $this->dispwhereclass_end;
 		}
 	}
 
@@ -690,20 +791,20 @@ Class Product_model extends CI_Model
 		{
 		 	case "starts":
 				$this->db->where("(LEFT(UPPER(title)," . strval(strlen($advsearch->ctitle)) . ") = '" . trim(strtoupper($advsearch->ctitle)) . "' OR left(UPPER(realtitle)," . strval(strlen($advsearch->ctitle)) . ") = '" . strtoupper($advsearch->ctitle) . "')");
-				$advsearch->cdisplaywhere .= 'Title starts with "' . trim($advsearch->ctitle) . '"<br>';
+				$advsearch->cdisplaywhere .= 'Title starts with "' . $this->dispwhereclass_start . trim($advsearch->ctitle) . $this->dispwhereclass_end . '"<br>';
 				break;
 			case "contains":
 				$this->db->where("LOCATE('" . strtoupper(trim($advsearch->ctitle)) . "', UPPER(realtitle)) > 0");
-				$advsearch->cdisplaywhere .= 'Title contains "' . trim($advsearch->ctitle) . '"<br>';
+				$advsearch->cdisplaywhere .= 'Title contains "' . $this->dispwhereclass_start . trim($advsearch->ctitle) . $this->dispwhereclass_end . '"<br>';
 				break;
 			case "equals":
 				$this->db->where("(RTRIM(UPPER(title)) = '" . strtoupper(trim($advsearch->ctitle)) . "' OR UPPER(rtrim(realtitle)) = '" . strtoupper(trim($advsearch->ctitle)) . "')");
-				$advsearch->cdisplaywhere .= 'Title equals "' . trim($advsearch->ctitle) . '"<br>';
+				$advsearch->cdisplaywhere .= 'Title equals "' . $this->dispwhereclass_start . trim($advsearch->ctitle) . $this->dispwhereclass_end . '"<br>';
 				break;
 			case "soundex":
 				$this->db->where("sndxtitle = '" . soundex(trim($advsearch->ctitle)) . "' OR sndxrtitle = '" .soundex(trim($advsearch->ctitle)) . "'" );
 				//$lcwhereclause .=  "(SOUNDEX('" . $advsearch->ctitle . "') = sndxtitle OR SOUNDEX('" . $advsearch->ctitle . "') = sndxrtitle)";
-				$advsearch->cdisplaywhere .= 'Title sounds like "' . trim($advsearch->ctitle) . '"<br>';
+				$advsearch->cdisplaywhere .= 'Title sounds like "' . $this->dispwhereclass_start . trim($advsearch->ctitle) . $this->dispwhereclass_end . '"<br>';
 				break;
 		}
 

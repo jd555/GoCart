@@ -2,6 +2,6 @@
 <div class="form_wrap">
 	<div>
 		<?php echo lang('purchaseorder_number') ?><b class="r"> *</b><br/>
-		<input name="ponumber" id='ponumber' type="text" class="pmt_required textfield input" value="" size="30" />
+		<input name="ponumber" id='ponumber' type="text" class="pmt_required_po textfield input" value="" size="30" />
 	</div>
 </div>

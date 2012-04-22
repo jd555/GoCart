@@ -52,7 +52,7 @@ $lang['form_save']			= 'Save';
 $lang['form_from']			= 'From';
 $lang['form_to']			= 'to';
 
-$lang['search']				= 'Search';
+$lang['search']				= 'Search results';
 $lang['amount']				= 'Amount';
 $lang['custom_amount']		= 'Custom Amount';
 $lang['preset_amount']		= 'Preset Amount';
@@ -62,9 +62,9 @@ $lang['sender_email']		= 'Sender Email';
 $lang['custom_greeting']	= 'Custom Greeting Message';
 $lang['check_out']			= 'Check Out';
 
-$lang['products']				= 'Products';
+$lang['products']				= 'Titles';
 $lang['out_of_stock']			= 'Out of Stock';
-$lang['no_products']			= 'There are currently no available products in this category.';
+$lang['no_products']			= 'No titles were found.';
 $lang['no_image_available']		= 'No Image Available';
 $lang['product_reg']			= 'reg:';
 $lang['product_price']			= 'Price:';
@@ -220,6 +220,7 @@ $lang['not_enough_stock']				= 'The quantity requested for the "%s" product coul
 
 // added for DS2
 $lang['login_required']					= 'You must {login} to purchase items.';
+$lang['preview_login_required']			= 'You must {login} to preview items.';
 $lang['purchaseorder_number']			= 'Purchase order number';
 $lang['purchaseorder']					= 'Purchase order';
 $lang['order_complete']					= 'Order complete';
@@ -235,3 +236,11 @@ $lang['emailsupport']					= 'Email support';
 $lang['emailsenttitle']					= 'Email success';
 $lang['emailsuccessmsg']				= 'Your email was successfully sent';
 $lang['advsearch']						= 'Advanced search';
+$lang['modify_search']					= 'Modify advanced search';
+$lang['clear_search']					= 'Clear search';
+
+$lang['no_preview_available']			= 'No preview available.';
+$lang['keywords']						= 'Keywords';
+$lang['no_keywords']					= 'No keywords.';
+$lang['cataloging_info']				= 'Cataloging info';
+$lang['no_cataloging_info']				= 'No cataloging info available.';

@@ -1,5 +1,17 @@
 <?php  if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
+define('DEBUG_MODE', FALSE);
+
+define("C_SORT_TITLE", "title");
+define("C_SORT_RELEVANCE","rele");
+define("C_SORT_RELEASEDATE","filmyear");
+define("C_SORT_LENGTH","length");
+define("C_NBSP", "&nbsp;");
+define("C_NONE", "(any)");
+define("C_PHP_UPLOAD_DIR", "./php_uploads/");
+define("C_ACCENTCHARS",	'àáâãäåçèéêëìíîïñðòóôõöøùúûüýÿÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖØÙÚÛÜÝ‘’“”—–•·¿£');
+define("C_ENGCHARS",    'aaaaaaceeeeiiiinooooooouuuuyyAAAAAACEEEEIIIINOOOOOOUUUUY\'\'""--** #');
+
 /*
 |--------------------------------------------------------------------------
 | File and Directory Modes

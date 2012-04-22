@@ -453,6 +453,7 @@ h2 {
 }
 
 .pagination {
+	margin-top:5px;
 	text-align:center;
 }
 
@@ -841,9 +842,42 @@ h2 {
 .product_specs {
 	padding:10px;
 }
+
 .product_specs label{
 	font-weight:bold;
 	font-size:12px;
+}
+
+/* search results display */
+.searchresult_title {
+	font-weight:bold;
+	font-size:14px;	
+}
+
+.searchresult_oneline {
+	font-size:12px;	
+}
+
+.searchresult_factoid {
+	font-style:italic;	
+	margin-bottom:15px;
+}
+
+/* advanced search terms */
+.advsearchterms {
+	margin-top:10px;
+	margin-bottom:15px;
+}
+.search_display_where {
+	font-style:italic;
+}
+
+.product_oneline {
+	font-style:italic;
+}
+
+.product_webdesc {
+	margin-top:15px;
 }
 
 .option_container {
@@ -1260,4 +1294,10 @@ h2 {
 .tierdescription {
 	font-style:italic;
 	font-weight:normal;
+}
+
+#previewplayer {
+	margin-left:18%;
+	margin-right:10%;
+	width:80%;
 }

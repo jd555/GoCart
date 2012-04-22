@@ -8,8 +8,8 @@
 <?php if(isset($meta)):?>
 	<?php echo $meta;?>
 <?php else:?>
-<meta name="Keywords" content="Shopping Cart, eCommerce, Code Igniter">
-<meta name="Description" content="Go Cart is an open source shopping cart built on the Code Igniter framework">
+<meta name="Keywords" content="docuseek, film, video, dvd, documentary, education, educational media, ">
+<meta name="description" content="Docuseek is a specialized site for searching the collections of leading distributors of independent, documentary, social issue and educational videos and films.">
 <?php endif;?>
 
 <link href="<?php echo base_url('gocart/themes/'.$this->config->item('theme').'/css/styles.css');?>" type="text/css" rel="stylesheet"/> 
@@ -24,6 +24,7 @@
 <link type="text/css" href="<?php echo base_url('js/jquery/colorbox/colorbox.css');?>" rel="stylesheet" />
 <script type="text/javascript" src="<?php echo base_url('js/jquery/colorbox/jquery.colorbox-min.js');?>"></script>
 <script type="text/javascript" src="<?php echo base_url('js/jquery/equal_heights.js');?>"></script>
+<script type="text/javascript" src="<?php echo base_url('js/common.js');?>"></script>
 
 <script type="text/javascript"> 
  
@@ -191,12 +192,17 @@ if(isset($additional_header_info))
 			<img src="<?php echo base_url('images/logo.png');?>" alt="<?php echo $this->config->item('company_name'); ?>">
 		</a>
 		</div>
+		<?php if(!isset($advsearchoptions) || !$advsearchoptions) {?>
 		<div id="search_form" class="right">
-			<?php echo form_open('cart/search');?>
-				<input type="text" name="term"/>
+			<?php echo form_open('cart/search');
+				include('searchfields.php');
+			 ?>
+				<input type="text" name="ckeywords"/>
+				
 				<button type="submit"><?php echo lang('form_search');?></button>
 			</form>
 		</div>
+		<?php }?>
 		<div id="banners">
 			<?php 
 			if(isset($banners)) {

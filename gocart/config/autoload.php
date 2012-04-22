@@ -52,7 +52,7 @@ $autoload['packages'] = array();
 |	$autoload['libraries'] = array('database', 'session', 'xmlrpc');
 */
 
-$autoload['libraries'] = array('database', 'session', 'auth', 'go_cart');
+$autoload['libraries'] = array('database', 'session', 'auth', 'go_cart', 'advsearch');
 
 
 /*
@@ -80,7 +80,7 @@ $autoload['helper'] = array('url', 'file', 'string', 'utility', 'html', 'languag
 |
 */
 
-$autoload['config'] = array('gocart');
+$autoload['config'] = array('gocart', 'kaltura');
 
 
 /*

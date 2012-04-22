@@ -1,4 +1,27 @@
 <?php include('header.php'); ?>
+<script type="text/javascript">
+
+function playvideo(piTitleid)
+{
+	var xmlhttp;
+	xmlhttp=new XMLHttpRequest();
+
+	// alert("in getFinderList2");
+	pindex = typeof(pindex) != 'undefined' ? pindex : 0;
+ 	pcaction = typeof(pcaction) != 'undefined' ? pcaction : 'show';
+ 
+	xmlhttp.onreadystatechange=function()
+	{
+		if (xmlhttp.readyState==4 && xmlhttp.status==200)
+		{
+			alert(xmlhttp.responseText);
+		}
+	}
+	xmlhttp.open("POST",'<?php echo site_url();?>' + '/cart/playvideo/' . piTitleid,true);
+	xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+	xmlhttp.send();
+}
+</script>
 
 <div id="social_sharing">
 	<!-- AddThis Button BEGIN -->
@@ -15,13 +38,14 @@
 </div>
 
 <div id="product_left">
-	<div id="product_image">
 		<?php
 		//get the primary photo for the product
-		$photo	= '<img src="'.base_url('images/nopicture.png').'" alt="'.lang('no_image_available').'"/>';
+		$photo	= ''; // '<img src="'.base_url('images/nopicture.png').'" alt="'.lang('no_image_available').'"/>';
 
 		if(count($product->images) > 0 )
 		{	
+			echo '<div id="product_image">';
+			
 			$primary	= $product->images[0];
 			foreach($product->images as $image)
 			{
@@ -40,8 +64,10 @@
 		<div id="product_caption">
 			<?php echo $primary->caption;?>
 		</div>
-		<?php endif;?>
-	</div>
+		<?php endif;
+		if ($photo != '') echo '</div>';
+		?>
+	
 
 	<!-- put pricing info here -->
 	<?php echo form_open('cart/add_to_cart');?>
@@ -53,8 +79,17 @@
 <!--			<div class="product_sku"><?php echo lang('sku');?>: <?php echo $product->sku; ?></div> -->
 			<div class='product_specs'>
 				<label>Distributor:</label> <?php echo $distributors[$product->extras[0]->distrib] . '<br/>';?> 
-				<label>Length:</label> <?php echo $product->extras[0]->length . ' minutes<br/>';?> 
-				<label>Release date:</label> <?php echo $product->extras[0]->rel_date . '<br/>';?>
+				<label>Length:</label> <?php echo sprintf('%4d',$product->extras[0]->length) . ' minutes<br/>';?>
+				<label>Date:</label> <?php echo sprintf('%4d',$product->extras[0]->filmyear) . '<br/>';?>
+
+<!--			<?php 
+					if($product->extras[0]->rel_date!='') 
+						echo '<label>Release date:</label> ' .  $product->extras[0]->rel_date . '<br/>';
+					elseif ($product->extras[0]->comp_date!='') 
+						echo '<label>Completion date:</label> ' .  $product->extras[0]->comp_date . '<br/>';
+				?>
+-->
+				<?php if($product->extras[0]->gradelevel!='')echo '<label>Grade level:</label> '.$product->extras[0]->gradelevel . '<br/>';?>
 				<?php if($product->extras[0]->color!='')echo '<label>'.$product->extras[0]->color . '</label><br/>';?>
 			</div>
 <!--		
@@ -207,12 +242,14 @@
 			<?php if(!$this->config->item('allow_os_purchase') && ((bool)$product->track_stock && $product->quantity <= 0)) : ?>
 				<h2 class="red"><?php echo lang('out_of_stock');?></h2>				
 			<?php else: ?>
+<!-- 				
 				<?php if((bool)$product->track_stock && $product->quantity <= 0):?>
 					<div class="red"><small><?php echo lang('out_of_stock');?></small></div>
 				<?php endif; ?>
 				<?php if(!$product->fixed_quantity) : ?>
 					<?php echo lang('quantity') ?> <input class="product_quantity" type="text" name="quantity" value=""/>
 				<?php endif; ?>
+-->
 				<?php if ($this->Customer_model->is_logged_in(false,false)) {?>
 					<input class="add_to_cart_btn" type="submit" value="<?php echo lang('form_add_to_cart');?>" /> 
 				<?php } else echo str_replace('{login}', anchor('secure/login', strtolower(lang('login'))), lang('login_required')) ; ?>
@@ -239,23 +276,71 @@
 			<li><a href="#preview_tab"><?php echo lang('tab_preview');?></a></li>
 		</ul>
 		<div id="description_tab">
+			<div class='product_oneline'>
 			<?php echo $product->description; ?>
+			</div>
+			<div class='product_webdesc'>
+				<?php echo $product->extras[0]->webdesc; ?>
+			</div>
 		</div>
 		<div id="reviews_tab">
-			<h2>Reviews go here</h2>
+			<?php 
+				if ($product->extras[0]->reviews != '')
+					echo $product->extras[0]->reviews; 
+				else
+					echo 'No reviews available.';
+			?>
 		</div>
 		<div id="transcript_tab">
-			<h2>Transcript info goes here</h2>
+			<?php 
+				if ($product->extras[0]->transcript != '')
+					echo $product->extras[0]->transcript; 
+				else
+					echo 'No transcript available.';
+			?>
 		</div>
 		<div id="credits_tab">
-			<h2>Credits info goes here</h2>
+			<?php echo $product->extras[0]->credits; ?>
 		</div>
 		<div id="cataloging_tab">
-			<h2>Cataloging info goes here</h2>
+			<?php 
+				echo '<h2>'. lang('keywords') . '</h2>';
+				if ($product->extras[0]->keywords != '')
+				{
+					echo $product->extras[0]->keywords; 
+				}
+				else
+					echo lang('no_keywords');
+				echo '<h2>' . lang('cataloging_info') . '</h2>';
+				if ($product->extras[0]->cataloging != '')
+				{
+					echo $product->extras[0]->cataloging; 
+				}
+				else
+					echo lang('no_cataloging_info');
+			?>
 		</div>
 		<div id="preview_tab">
-			<h2>Preview viewer goes here</h2>
-			Also trailer link?
+			<?php 
+				if ($product->extras[0]->mediaid != '') { 
+					if(!$this->Customer_model->is_logged_in(false, false))
+					{
+						echo str_replace('{login}', anchor('secure/login', strtolower(lang('login'))), lang('preview_login_required')) ;
+
+					}
+					else {
+					?>
+					
+					<script type="text/javascript" src="http://www.kaltura.com/p/817202/sp/81720200/embedIframeJs/uiconf_id/6607192/partner_id/817202"></script>
+					<div id="previewplayer">
+					<object id="kaltura_player_1335040493" name="kaltura_player_1335040493" type="application/x-shockwave-flash" allowFullScreen="true" allowNetworking="all" allowScriptAccess="always" height="330" width="400" bgcolor="#000000" xmlns:dc="http://purl.org/dc/terms/" xmlns:media="http://search.yahoo.com/searchmonkey/media/" rel="media:video" resource="http://www.kaltura.com/index.php/kwidget/cache_st/1335040493/wid/_817202/uiconf_id/6607192/entry_id/<?php echo $product->extras[0]->mediaid ?>" data="http://www.kaltura.com/index.php/kwidget/cache_st/1335040493/wid/_817202/uiconf_id/6607192/entry_id/<?php echo $product->extras[0]->mediaid ?>"><param name="allowFullScreen" value="true" /><param name="allowNetworking" value="all" /><param name="allowScriptAccess" value="always" /><param name="bgcolor" value="#000000" /><param name="flashVars" value="&{FLAVOR}" /><param name="movie" value="http://www.kaltura.com/index.php/kwidget/cache_st/1335040493/wid/_817202/uiconf_id/6607192/entry_id/<?php echo $product->extras[0]->mediaid ?>" /> <a rel="media:thumbnail" href="http://cdnbakmi.kaltura.com/p/817202/sp/81720200/thumbnail/entry_id/<?php echo $product->extras[0]->mediaid ?>/width/120/height/90/bgcolor/000000/type/2"></a> <span property="dc:description" content=""></span><span property="media:title" content="Little Kids"></span> <span property="media:width" content="400"></span><span property="media:height" content="330"></span> <span property="media:type" content="application/x-shockwave-flash"></span> </object>
+					</div>
+
+			<?php	}
+			}
+			else
+				echo lang('no_preview_available');
+			?>
 		</div>
 	</div>
 
